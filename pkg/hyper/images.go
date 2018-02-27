@@ -22,6 +22,7 @@ import (
 
 	"github.com/golang/glog"
 	kubeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
 // ListImages lists existing images.
@@ -57,6 +58,21 @@ func (h *Runtime) ListImages(filter *kubeapi.ImageFilter) ([]*kubeapi.Image, err
 
 	glog.V(4).Infof("Got imageList: %q", results)
 	return results, nil
+}
+
+// ImageStats returns the statistics of the image.
+func (h *Runtime) ImageStats() (*kubecontainer.ImageStats, error) {
+	allImages, err := h.client.GetImages()
+	if err != nil {
+		glog.Errorf("Get image list failed: %v", err)
+		return nil, err
+	}
+
+	stats := &kubecontainer.ImageStats{}
+	for _, img := range allImages {
+		stats.TotalStorageBytes += uint64(img.VirtualSize)
+	}
+	return stats, nil
 }
 
 // PullImage pulls the image with authentication config.
